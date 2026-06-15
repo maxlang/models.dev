@@ -30,16 +30,28 @@ const AmbientModel = z.object({
   openrouter: z.object({ slug: z.string() }).partial().nullable().optional(),
 }).passthrough();
 
-const AmbientResponse = z.object({
+export const AmbientResponse = z.object({
   data: z.array(AmbientModel),
 }).passthrough();
 
-type AmbientModel = z.infer<typeof AmbientModel>;
+export type AmbientModel = z.infer<typeof AmbientModel>;
 
 export const ambient = {
   id: "ambient",
   name: "Ambient",
   modelsDir: "providers/ambient/models",
+  // Ambient's /v1/models is the authoritative served set, but retain locally
+  // curated TOMLs (e.g. reasoning_options / interleaved) if a model briefly
+  // drops out of the catalog, surfacing them for manual lifecycle review
+  // instead of silently deleting. Mirrors the Baseten provider.
+  deleteMissing: false,
+  missingNotice(paths) {
+    if (paths.length === 0) return [];
+    return [
+      `${paths.length} local Ambient models were absent from the catalog and were retained for manual lifecycle review.`,
+      `Retained local paths: ${paths.map((item) => `\`${item}\``).join(", ")}`,
+    ];
+  },
   async fetchModels() {
     const headers = process.env.AMBIENT_API_KEY
       ? { Authorization: `Bearer ${process.env.AMBIENT_API_KEY}` }
@@ -73,7 +85,12 @@ export function buildAmbientModel(
     ),
     reasoning_options: existing?.reasoning_options,
   };
-  if ("base_model" in synced) return synced;
+  if ("base_model" in synced) {
+    // Ambient's served display names drift from the canonical curated names
+    // (e.g. "GLM 5.1" vs "GLM-5.1", a dropped "IT" suffix) and are not
+    // authoritative, so inherit the canonical name rather than overriding it.
+    return { ...synced, name: undefined };
+  }
   return {
     ...synced,
     name: existing?.name ?? synced.name,
@@ -85,7 +102,7 @@ export function buildAmbientModel(
 // Ambient reports the upstream OpenRouter slug (e.g. "z-ai/glm-5.1") for each
 // served model, which is the canonical key models.dev already indexes by. Use
 // it to inherit upstream metadata via base_model instead of a hand-kept map.
-function resolveAmbientBaseModel(model: AmbientModel) {
+export function resolveAmbientBaseModel(model: AmbientModel) {
   const slug = model.openrouter?.slug;
   return slug !== undefined ? resolveCanonicalBaseModel(slug) : undefined;
 }
