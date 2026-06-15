@@ -1,0 +1,14 @@
+base_model = "google/gemma-4-26b-a4b-it"
+name = "Gemma 4 26B A4B"
+
+[cost]
+input = 0.1
+output = 0.3
+cache_read = 0.02
+cache_write = 0
+
+[limit]
+output = 262_144
+
+[modalities]
+input = ["text", "image", "video"]

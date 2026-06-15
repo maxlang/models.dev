@@ -4,6 +4,7 @@ import { mergeDeep } from "remeda";
 import { z } from "zod";
 
 import { AuthoredModel, AuthoredModelShape, ModelMetadata } from "../schema.js";
+import { ambient } from "./providers/ambient.js";
 import { baseten } from "./providers/baseten.js";
 import { cloudflareWorkersAi } from "./providers/cloudflare-workers-ai.js";
 import { google } from "./providers/google.js";
@@ -77,6 +78,7 @@ export interface SyncResult {
 }
 
 export const providers: {
+  ambient: SyncProvider<any>;
   baseten: SyncProvider<any>;
   "cloudflare-workers-ai": SyncProvider<any>;
   google: SyncProvider<any>;
@@ -86,6 +88,7 @@ export const providers: {
   venice: SyncProvider<any>;
   xai: SyncProvider<any>;
 } = {
+  ambient,
   baseten,
   "cloudflare-workers-ai": cloudflareWorkersAi,
   google,
@@ -99,7 +102,7 @@ export const providers: {
 export const groups = {
   aggregators: ["openrouter", "vercel"],
   cloudflare: ["cloudflare-workers-ai"],
-  direct: ["baseten", "google", "ovhcloud", "venice", "xai"],
+  direct: ["ambient", "baseten", "google", "ovhcloud", "venice", "xai"],
 } as const;
 
 type ProviderID = keyof typeof providers;
